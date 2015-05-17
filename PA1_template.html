@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="author" content="Nathan Zeitler" />
+
+
+<title>Assignment 1</title>
+
+<script src="PA1_template_files/jquery-1.11.0/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="PA1_template_files/bootstrap-3.3.1/css/bootstrap.min.css" rel="stylesheet" />
+<script src="PA1_template_files/bootstrap-3.3.1/js/bootstrap.min.js"></script>
+<script src="PA1_template_files/bootstrap-3.3.1/shim/html5shiv.min.js"></script>
+<script src="PA1_template_files/bootstrap-3.3.1/shim/respond.min.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<link rel="stylesheet"
+      href="PA1_template_files/highlight/default.css"
+      type="text/css" />
+<script src="PA1_template_files/highlight/highlight.js"></script>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img { 
+  max-width:100%; 
+  height: auto; 
+}
+</style>
+<div class="container-fluid main-container">
+
+
+<div id="header">
+<h1 class="title">Assignment 1</h1>
+<h4 class="author"><em>Nathan Zeitler</em></h4>
+<h4 class="date"><em>Wednesday, May 13, 2015</em></h4>
+</div>
+
+
+<p>The frist step to exploring the fit bit data set downloaded from <a href="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip">https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip</a> is to load in the data.</p>
+<pre class="r"><code>options(scipen=999)
+library(plyr)
+## extracts file is zip is present but file is not
+    if (file.exists(&quot;repdata_data_activity.zip&quot;)&amp;!file.exists(&quot;repdata_data_activity&quot;)){
+    unzip (&quot;repdata_data_activity.zip&quot;)
+}
+
+## read file using read.csv function.  
+setwd(&quot;repdata_data_activity&quot;)
+dat &lt;- read.csv(&quot;activity.csv&quot;)</code></pre>
+<p>The next step is to prepare the data for displaying, including changing the date column to a POSIXct type and adding in new coloumns to help summarize the data.</p>
+<pre class="r"><code>## make chnges to the data set to allow for easier later porcessing.  This includes converting date into a POSIXct data type and and adding a column to label each data point as belonging to a weekday or a weekend day.
+dat$datefact &lt;- dat$date
+dat$date &lt;- as.POSIXlt(dat$date)
+dat$week &lt;- weekdays(dat$date)
+## generate week/weekend column
+for (i in 1:length(dat$week)){
+  if (dat$week[i] == &quot;Saturday&quot; | dat$week[i]  ==&quot;Sunday&quot;){
+    dat$week[i] &lt;- &quot;weekend&quot;}
+  else { dat$week[i]&lt;- &quot;weekday&quot;}
+  }
+dat$week &lt;- as.factor(dat$week)
+dat$timeabs &lt;- rep(c(seq(0,1435,5)),61)
+str(dat)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    17568 obs. of  6 variables:
+##  $ steps   : int  NA NA NA NA NA NA NA NA NA NA ...
+##  $ date    : POSIXlt, format: &quot;2012-10-01&quot; &quot;2012-10-01&quot; ...
+##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
+##  $ datefact: Factor w/ 61 levels &quot;2012-10-01&quot;,&quot;2012-10-02&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ week    : Factor w/ 2 levels &quot;weekday&quot;,&quot;weekend&quot;: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ timeabs : num  0 5 10 15 20 25 30 35 40 45 ...</code></pre>
+<p>The nexts step is to begin analysis. In this case we will first look at the total number of steps per day. For this we are ignoring any days without data.</p>
+<pre class="r"><code>## use plyr package loaded in the begning to generagte sum based on date
+log &lt;- ddply(dat,.(datefact),summarize,steps=sum(steps, na.rm=FALSE))
+#3 generate a histogram and show the mean and median total steps per day.
+hist(log$steps)</code></pre>
+<p><img src="PA1_template_files/figure-html/unnamed-chunk-3-1.png" /></p>
+<pre class="r"><code>m1 &lt;- mean(log$steps,na.rm=TRUE)
+md1 &lt;- median(log$steps,na.rm=TRUE)</code></pre>
+<p>So the mean is 10766.1886792 and the median is 10765. Given how close these value are the data must be roughly equaly distributed about the mean.</p>
+<p>Now we will investigate the average number of steps walked in each 5 minute time interval. Again for this section we are ignoring NA data points.</p>
+<pre class="r"><code>## use plyr package to create mean for each time interval
+mean_by_time &lt;- ddply(dat,.(timeabs),summarize,steps=mean(steps,na.rm=T))
+## plot and determine max number of average steps
+plot(mean_by_time, type=&quot;l&quot;)</code></pre>
+<p><img src="PA1_template_files/figure-html/unnamed-chunk-4-1.png" /></p>
+<pre class="r"><code>max(mean_by_time)</code></pre>
+<pre><code>## [1] 1435</code></pre>
+<p>Now there are some days with no data recorded. We will fill these days in by setting each NA value to the average value for that interval on all other days, and repeat the summary analysis from part 1.</p>
+<pre class="r"><code>## determine number of NA values
+sum(is.na(dat$steps))</code></pre>
+<pre><code>## [1] 2304</code></pre>
+<pre class="r"><code>## replace each NA with the average value for that time interval on all days.
+dat2 &lt;- dat
+for (i in 1:length(dat2$date)){
+  if (is.na(dat2$steps[i])){
+    dat2$steps[i] &lt;- mean_by_time$steps[mean_by_time$timeabs==dat2$timeabs[i]]
+  }
+}
+
+## use dplyr to create sums and produce output
+log2 &lt;- ddply(dat2,.(datefact),summarize,steps=sum(steps))
+hist(log2$steps)</code></pre>
+<p><img src="PA1_template_files/figure-html/unnamed-chunk-5-1.png" /></p>
+<pre class="r"><code>m2 &lt;- round(mean(log2$steps), 6)
+md2 &lt;- round(median(log2$steps),6)</code></pre>
+<p>THe mean of the corrected data is 10766.188679 and the median of the corrected data is 10766.188679. THe strategy we used to fill in the missing data effectivly added rougly 8 days at exactly the mean value. Thus while the mean did not change, the median moved over some number of days so that it fell on the day we added at the average.</p>
+<p>Finaly we will compare the step paterns on weekdays and the step paterns on weekend by comparing the average steps at each interval.</p>
+<pre class="r"><code>library(lattice)
+log3 &lt;- ddply(dat,.(timeabs,week),summarize,steps=mean(steps,na.rm=T))
+xyplot(steps ~ timeabs | week, data=log3, type=&quot;l&quot;)</code></pre>
+<p><img src="PA1_template_files/figure-html/unnamed-chunk-6-1.png" /></p>
+<p>The overall patern seems to indicate that on weekdays there is a distinc spike in distance traveled (as measured by steps) fairly early in the morning</p>
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+$(document).ready(function () {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+});
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
